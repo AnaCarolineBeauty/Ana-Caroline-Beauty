@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Convite Casa Nova - Alice & Andrew</title>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<!-- Firebase compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+:root{--accent:#d4af37;--bg1:#f5f1eb;--bg2:#fff8f0}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:'Roboto',sans-serif;
+  background:linear-gradient(to bottom,var(--bg1),var(--bg2));
+  display:flex;align-items:center;justify-content:center;min-height:100vh;color:#000;
+}
+.container{
+  width:92%;max-width:720px;background:#fff;border-radius:20px;padding:40px 30px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.12);text-align:center;position:relative;
+}
+.rings{font-size:3em;color:var(--accent);margin-bottom:12px;animation:bounce 1.5s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+h1{font-family:'Great Vibes',cursive;font-size:3.2rem;margin:4px 0 10px;color:#000}
+.event-info{font-size:1.05rem;margin-bottom:18px;line-height:1.4;color:#111}
+.lead{margin-bottom:18px;color:#333}
+
+.form-row{text-align:left;margin-bottom:16px}
+label{display:block;font-weight:600;margin-bottom:8px;color:#333}
+input[type="text"],select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #dcd6cf;font-size:1rem;background:#fff}
+
+.gifts{display:flex;flex-direction:column;gap:8px;text-align:left;margin-bottom:18px}
+.gift-item{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:10px;transition:transform .12s ease,background .12s ease;cursor:pointer;border:1px solid transparent}
+.gift-item:hover{transform:scale(1.02);background:#fbf6ef}
+.gift-item.reserved{background:#f0e0c3;border-color:#e6d7b0;pointer-events:none;opacity:.95}
+.gift-item input{width:20px;height:20px;cursor:pointer;accent-color:var(--accent)}
+
+.controls{display:flex;gap:12px;justify-content:center;margin-top:6px}
+button{background:#000;color:#fff;padding:12px 20px;border:none;border-radius:12px;font-size:1rem;cursor:pointer;transition:transform .12s ease,background .12s ease}
+button:disabled{opacity:.6;cursor:not-allowed;transform:none}
+button:hover:not(:disabled){transform:scale(1.03);background:#222}
+
+.status{margin-top:14px;font-size:.99rem;color:#444;min-height:20px}
+.small{font-size:.95rem;color:#666;margin-top:12px}
+
+@media (max-width:600px){h1{font-size:2.6rem}.container{padding:24px}}
+</style>
+</head>
+<body>
+<div class="container" role="main">
+  <div class="rings" aria-hidden="true">💍💍</div>
+  <h1>Alice & Andrew</h1>
+
+  <div class="event-info" aria-live="polite">
+    📅 Data: 10/11/2025 &nbsp;&nbsp; 🕒 Horário: 19:00 &nbsp;&nbsp; 📍 Local: Espaço Celebrar
+  </div>
+
+  <p class="lead">Estamos de casa nova! Escolha o presente que gostaria de nos dar e confirme sua presença.</p>
+
+  <form id="mainForm" onsubmit="return false;" aria-describedby="formHelp">
+    <div class="form-row">
+      <label for="guestName">Seu nome</label>
+      <input type="text" id="guestName" name="guestName" placeholder="Digite seu nome" autocomplete="name" required>
+    </div>
+
+    <div class="form-row">
+      <label for="attendance">Confirma presença?</label>
+      <select id="attendance" name="attendance" required>
+        <option value="">Selecione</option>
+        <option value="Sim">Sim</option>
+        <option value="Não">Não</option>
+      </select>
+    </div>
+
+    <div class="form-row gifts" id="giftsList" aria-label="Lista de presentes">
+      <!-- itens renderizados por JS -->
+    </div>
+
+    <div class="controls">
+      <button id="submitBtn" type="button" onclick="submitForm()">Enviar</button>
+      <button id="clearBtn" type="button" onclick="resetForm()">Limpar</button>
+    </div>
+
+    <div class="status" id="statusMsg" role="status" aria-live="polite"></div>
+    <div class="small" id="formHelp">Os presentes reservados aparecem em destaque e não podem ser selecionados novamente.</div>
+  </form>
+</div>
+
+<script>
+/* Substitua com suas credenciais do Firebase */
+const firebaseConfig = {
+  apiKey: "SEU_API_KEY",
+  authDomain: "SEU_AUTH_DOMAIN",
+  projectId: "SEU_PROJECT_ID",
+  storageBucket: "SEU_STORAGE_BUCKET",
+  messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+  appId: "SEU_APP_ID"
+};
+
+if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("SEU_")) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const s = document.getElementById('statusMsg');
+    if (s) s.textContent = "Atenção: substitua as credenciais do Firebase no topo do arquivo antes de testar.";
+  });
+}
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const availableGifts = [
+  { id: "Jogo de Panelas", icon: "🍳" },
+  { id: "Conjunto de Talheres", icon: "🍴" },
+  { id: "Kit de Toalhas", icon: "🛁" },
+  { id: "Decoração de Sala", icon: "🖼️" },
+  { id: "Aparelho de Jantar", icon: "🍽️" }
+];
+
+const giftsContainer = document.getElementById('giftsList');
+const statusMsg = document.getElementById('statusMsg');
+const submitBtn = document.getElementById('submitBtn');
+const clearBtn = document.getElementById('clearBtn');
+
+let reservedMap = {}; // { giftId: { reservedBy, reservedAt } }
+
+function renderGifts(){
+  giftsContainer.innerHTML = '';
+  for (const g of availableGifts) {
+    const wrapper = document.createElement('label');
+    wrapper.className = 'gift-item';
+    wrapper.setAttribute('data-id', g.id);
+    wrapper.setAttribute('tabindex','0');
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.name = 'gift';
+    checkbox.value = g.id;
+    checkbox.id = 'gift-' + g.id.replace(/\s+/g,'-');
+
+    const iconSpan = document.createElement('span');
+    iconSpan.textContent = g.icon;
+    iconSpan.setAttribute('aria-hidden','true');
+
+    const text = document.createElement('span');
+    text.textContent = g.id;
+
+    if (reservedMap[g.id]) {
+      checkbox.checked = true;
+      checkbox.disabled = true;
+      wrapper.classList.add('reserved');
+      wrapper.title = `Reservado por ${reservedMap[g.id].reservedBy}`;
+    } else {
+      checkbox.checked = false;
+      checkbox.disabled = false;
+    }
+
+    // clique no label alterna checkbox somente se não reservado
+    wrapper.appendChild(iconSpan);
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(text);
+    giftsContainer.appendChild(wrapper);
+  }
+}
+
+async function loadReservedGifts(){
+  try{
+    const snap = await db.collection('presentes').get();
+    reservedMap = {};
+    snap.forEach(doc => { reservedMap[doc.id] = doc.data(); });
+    renderGifts();
+  }catch(err){
+    console.error('Erro ao carregar presentes:', err);
+    statusMsg.textContent = 'Erro ao carregar estado dos presentes. Recarregue a página.';
+  }
+}
+
+function resetForm(){
+  document.getElementById('guestName').value = '';
+  document.getElementById('attendance').value = '';
+  document.querySelectorAll('input[name="gift"]').forEach(cb => { if (!cb.disabled) cb.checked = false; });
+  statusMsg.textContent = '';
+}
+
+async function submitForm(){
+  const name = document.getElementById('guestName').value.trim();
+  const attendance = document.getElementById('attendance').value;
+  const chosen = Array.from(document.querySelectorAll('input[name="gift"]:checked')).map(i => i.value);
+
+  if (!name || !attendance) {
+    statusMsg.textContent = 'Por favor, preencha nome e presença.';
+    return;
+  }
+
+  submitBtn.disabled = true;
+  clearBtn.disabled = true;
+  statusMsg.textContent = 'Enviando...';
+
+  try {
+    // grava RSVP
+    await db.collection('rsvps').doc().set({
+      name,
+      attendance,
+      gifts: chosen,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    const failed = [];
+
+    for (const giftId of chosen) {
+      const docRef = db.collection('presentes').doc(giftId);
+      try {
+        await db.runTransaction(async (tx) => {
+          const doc = await tx.get(docRef);
+          if (doc.exists) {
+            throw new Error('already_reserved');
+          } else {
+            tx.set(docRef, {
+              reservedBy: name,
+              reservedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        });
+      } catch (tErr) {
+        if (tErr.message === 'already_reserved') {
+          failed.push(giftId);
+        } else {
+          console.error('Transação falhou para', giftId, tErr);
+          failed.push(giftId);
+        }
+      }
+    }
+
+    await loadReservedGifts();
+
+    if (failed.length === 0) {
+      statusMsg.textContent = 'Obrigado! Sua presença e seleção foram registradas ✨';
+    } else {
+      statusMsg.textContent = 'Alguns itens já foram reservados por outra pessoa: ' + failed.join(', ') + '. Seu RSVP foi salvo.';
+    }
+  } catch (err) {
+    console.error('Erro ao enviar formulário:', err);
+    statusMsg.textContent = 'Ocorreu um erro ao enviar. Tente novamente.';
+  } finally {
+    submitBtn.disabled = false;
+    clearBtn.disabled = false;
+  }
+}
+
+function startRealtimeListener(){
+  db.collection('presentes').onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added' || change.type === 'modified') {
+        reservedMap[change.doc.id] = change.doc.data();
+      } else if (change.type === 'removed') {
+        delete reservedMap[change.doc.id];
+      }
+    });
+    renderGifts();
+  }, err => {
+    console.error('Listener error', err);
+  });
+}
+
+(async function init(){
+  renderGifts();
+  await loadReservedGifts();
+  startRealtimeListener();
+})();
+</script>
+</body>
+</html>
