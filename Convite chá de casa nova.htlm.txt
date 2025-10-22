@@ -1,0 +1,153 @@
+// App.jsx
+import { useState } from "react";
+
+const presentes = [
+  {
+    categoria: "Cozinha",
+    itens: [
+      "Jogo de panelas",
+      "Faqueiro inox",
+      "Jogo de pratos e copos",
+      "Potes herméticos",
+      "Conjunto de utensílios",
+      "Forma de bolo ou assadeira",
+      "Panos de prato",
+    ],
+  },
+  {
+    categoria: "Banheiro",
+    itens: [
+      "Jogo de toalhas",
+      "Tapete de banheiro",
+      "Kit de banheiro (porta escova e saboneteira)",
+      "Cesto de roupas",
+    ],
+  },
+  {
+    categoria: "Sala e Quarto",
+    itens: [
+      "Jogo de cama",
+      "Almofadas decorativas",
+      "Manta ou cobertor",
+      "Abajur ou luminária",
+      "Travesseiros",
+    ],
+  },
+  {
+    categoria: "Limpeza e Lavanderia",
+    itens: [
+      "Balde e bacia",
+      "Vassoura, rodo e pá",
+      "Varal e pregadores",
+      "Lixeira com pedal",
+      "Pano de chão e flanelas",
+    ],
+  },
+  {
+    categoria: "Extras Decorativos",
+    itens: [
+      "Velas aromáticas",
+      "Plantinha ou vaso decorativo",
+      "Porta-temperos",
+      "Jogo de café ou chá",
+      "Porta-chaves",
+    ],
+  },
+];
+
+export default function App() {
+  const [rsvp, setRsvp] = useState("");
+  const [nome, setNome] = useState("");
+  const [presentesSelecionados, setPresentesSelecionados] = useState([]);
+
+  const togglePresente = (item) => {
+    setPresentesSelecionados((prev) =>
+      prev.includes(item)
+        ? prev.filter((i) => i !== item)
+        : [...prev, item]
+    );
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert(
+      `Obrigado pela confirmação, ${nome}!\nRSVP: ${rsvp}\nPresentes selecionados: ${presentesSelecionados.join(
+        ", "
+      )}`
+    );
+    setNome("");
+    setRsvp("");
+    setPresentesSelecionados([]);
+  };
+
+  return (
+    <div className="min-h-screen bg-bege-100 flex flex-col items-center p-6 font-serif text-black">
+      <header className="text-center mb-8">
+        <div className="text-4xl mb-2">💍</div>
+        <h1 className="text-3xl font-bold mb-1">Chá de Casa Nova</h1>
+        <h2 className="text-xl mb-2">Alice & Andrew</h2>
+        <p>📅 16/11/2025 | ⏰ 15:00h</p>
+        <p>📍 Av. Paulo Roberto Vidal, 2490 – Quiosque, Condomínio Moradas 3</p>
+      </header>
+
+      <main className="max-w-xl w-full bg-white p-6 rounded-2xl shadow-md">
+        <p className="mb-4">
+          Com o coração cheio de gratidão e alegria, convidamos você para o
+          Chá de Casa Nova! Sua presença será o maior presente, mas se
+          desejar contribuir, veja nossa lista de presentes interativa.
+        </p>
+
+        <h3 className="text-2xl font-semibold mb-2">🎁 Lista de Presentes</h3>
+        {presentes.map((cat) => (
+          <div key={cat.categoria} className="mb-4">
+            <h4 className="text-xl font-medium mb-1">{cat.categoria}</h4>
+            <ul className="ml-4 list-disc">
+              {cat.itens.map((item) => (
+                <li key={item}>
+                  <label className="cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={presentesSelecionados.includes(item)}
+                      onChange={() => togglePresente(item)}
+                      className="mr-2"
+                    />
+                    {item}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+
+        <h3 className="text-2xl font-semibold mt-6 mb-2">📩 Confirme sua presença</h3>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="text"
+            placeholder="Seu nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            className="border border-gray-300 p-2 rounded"
+            required
+          />
+          <select
+            value={rsvp}
+            onChange={(e) => setRsvp(e.target.value)}
+            className="border border-gray-300 p-2 rounded"
+            required
+          >
+            <option value="">Confirmar presença</option>
+            <option value="Sim">Sim</option>
+            <option value="Não">Não</option>
+            <option value="Talvez">Talvez</option>
+          </select>
+          <button
+            type="submit"
+            className="bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition"
+          >
+            Enviar
+          </button>
+        </form>
+      </main>
+    </div>
+  );
+}
