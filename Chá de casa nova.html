@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convite Casa Nova - Alice & Andrew</title>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(to bottom, #f5f1eb, #fff8f0);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #000;
+}
+.container {
+    background-color: #fff;
+    border-radius: 25px;
+    padding: 50px 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    max-width: 650px;
+    text-align: center;
+    position: relative;
+}
+.rings {
+    font-size: 3em;
+    color: #d4af37;
+    margin-bottom: 20px;
+    animation: bounce 1.5s infinite;
+}
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+h1 {
+    font-family: 'Great Vibes', cursive;
+    font-size: 3em;
+    margin: 0 0 15px 0;
+    color: #000;
+}
+.event-info {
+    font-size: 1.2em;
+    margin-bottom: 30px;
+    line-height: 1.5;
+}
+.gifts {
+    text-align: left;
+    margin-bottom: 30px;
+}
+.gifts label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: transform 0.2s ease, background-color 0.3s ease;
+    padding: 5px 10px;
+    border-radius: 10px;
+}
+.gifts label:hover {
+    transform: scale(1.03);
+    background-color: #f2e8df;
+}
+.gifts input[type="checkbox"] {
+    margin-right: 15px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: #d4af37;
+}
+.gift-icon {
+    font-size: 1.5em;
+    margin-right: 10px;
+}
+.rsvp {
+    margin-bottom: 30px;
+    text-align: left;
+}
+.rsvp label {
+    display: block;
+    margin-bottom: 10px;
+}
+.rsvp input[type="text"], .rsvp select {
+    padding: 10px;
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+    font-size: 1em;
+}
+button {
+    background-color: #000;
+    color: #fff;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 15px;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+button:hover {
+    background-color: #333;
+    transform: scale(1.05);
+}
+.thankyou {
+    font-size: 1.2em;
+    color: #555;
+    margin-top: 20px;
+    display: none;
+}
+.reserved {
+    background-color: #f0e0c3;
+    font-weight: bold;
+    pointer-events: none;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="rings">💍💍</div>
+    <h1>Alice & Andrew</h1>
+
+    <div class="event-info">
+        📅 Data: 10/11/2025<br>
+        🕒 Horário: 19:00<br>
+        📍 Local: Espaço Celebrar
+    </div>
+
+    <p>Estamos de casa nova! Escolha o presente que gostaria de nos dar e confirme sua presença:</p>
+
+    <form id="mainForm">
+        <div class="rsvp">
+            <label for="guestName">Seu nome:</label>
+            <input type="text" id="guestName" name="guestName" placeholder="Digite seu nome" required>
+
+            <label for="attendance">Confirma presença?</label>
+            <select id="attendance" name="attendance" required>
+                <option value="">Selecione</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+        </div>
+
+        <div class="gifts">
+            <label><span class="gift-icon">🍳</span><input type="checkbox" name="gift" value="Jogo de Panelas"> Jogo de Panelas</label>
+            <label><span class="gift-icon">🍴</span><input type="checkbox" name="gift" value="Conjunto de Talheres"> Conjunto de Talheres</label>
+            <label><span class="gift-icon">🛁</span><input type="checkbox" name="gift" value="Kit de Toalhas"> Kit de Toalhas</label>
+            <label><span class="gift-icon">🖼️</span><input type="checkbox" name="gift" value="Decoração de Sala"> Decoração de Sala</label>
+            <label><span class="gift-icon">🍽️</span><input type="checkbox" name="gift" value="Aparelho de Jantar"> Aparelho de Jantar</label>
+        </div>
+
+        <button type="button" onclick="submitForm()">Enviar</button>
+    </form>
+
+    <p class="thankyou" id="thankyouMessage">Obrigado! Sua presença e seleção de presentes foram registradas. 💛</p>
+</div>
+
+<script>
+  // Configuração do Firebase (substitua pelos seus dados)
+  const firebaseConfig = {
+    apiKey: "SEU_API_KEY",
+    authDomain: "SEU_AUTH_DOMAIN",
+    projectId: "SEU_PROJECT_ID",
+    storageBucket: "SEU_STORAGE_BUCKET",
+    messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+    appId: "SEU_APP_ID"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // Carregar presentes reservados
+  document.addEventListener('DOMContentLoaded', async () => {
+    const snapshot = await db.collection('presentes').get();
+    const reservedGifts = snapshot.docs.map(doc => doc.id);
+
+    document.querySelectorAll('input[name="gift"]').forEach(input => {
+        if(reservedGifts.includes(input.value)) {
+            input.checked = true;
+            input.disabled = true;
+            input.parentElement.classList.add('reserved');
+        }
+    });
+  });
+
+  async function submitForm() {
+    const name = document.getElementById('guestName').value.trim();
+    const attendance = document.getElementById('attendance').value;
+    const selectedGifts = [];
+
+    document.querySelectorAll('input[name="gift"]:checked').forEach(item => {
+        selectedGifts.push(item.value);
+    });
+
+    if (!name || !attendance) {
+        alert("Por favor, preencha nome e presença.");
+        return;
+    }
+
+    // Salvar presentes no Firestore
+    for (const gift of selectedGifts) {
+        const docRef = db.collection('presentes').doc(gift);
+        const doc = await docRef.get();
+        if (!doc.exists) {
+            await docRef.set({ reservedBy: name });
+        }
+    }
+
+    // Atualizar interface
+    const snapshot = await db.collection('presentes').get();
+    const reservedGifts = snapshot.docs.map(doc => doc.id);
+
+    document.querySelectorAll('input[name="gift"]').forEach(input => {
+        if(reservedGifts.includes(input.value)) {
+            input.checked = true;
+            input.disabled = true;
+            input.parentElement.classList.add('reserved');
+        }
+    });
+
+    document.getElementById('mainForm').style.display = 'none';
+    document.getElementById('thankyouMessage').style.display = 'block';
+  }
+</script>
+</body>
+</html>
